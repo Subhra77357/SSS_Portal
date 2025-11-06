@@ -15,10 +15,11 @@ from io import BytesIO
 app = Flask(__name__)
 app.secret_key = "linuxlabs_secret_key_2025"
 
-BASE_PATH = "/home/SUBHRAPRADEEPDAS/SSS_Portal"
+BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_ROOT = os.path.join(BASE_PATH, "uploads")
 TEMP_ZIP_ROOT = os.path.join(BASE_PATH, "temp_zips")
 MASTER_XLSX = os.path.join(BASE_PATH, "stockist_master.xlsx")
+
 
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 os.makedirs(TEMP_ZIP_ROOT, exist_ok=True)
@@ -454,3 +455,4 @@ def serve_upload(division, state, kind, filename):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
