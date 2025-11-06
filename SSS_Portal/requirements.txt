@@ -1,3 +1,6 @@
+
+python-3.11.9
+
 # Core web framework
 Flask==3.0.3
 gunicorn==23.0.0
@@ -29,3 +32,4 @@ XlsxWriter==3.2.0
 
 # Optional: for authentication
 Flask-Login==0.6.3
+
