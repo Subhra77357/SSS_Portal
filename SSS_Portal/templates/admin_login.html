@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Linux Labs – Admin Login</title>
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(120deg,#0b69b1 0%, #004aad 100%);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", sans-serif;
+      color: #fff;
+    }
+
+    .login-card {
+      width: 400px;
+      background: #fff;
+      color: #0b2136;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+      position: relative;
+    }
+
+    .brand {
+      font-weight: 700;
+      color: #004aad;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 1.3rem;
+    }
+
+    .brand i {
+      font-size: 1.6rem;
+      color: #0078d4;
+    }
+
+    .form-control {
+      border-radius: 10px;
+      padding: 10px 38px 10px 12px;
+      border: 1px solid #d1d5db;
+    }
+
+    .form-control:focus {
+      box-shadow: 0 0 0 0.2rem rgba(0,120,212,0.25);
+      border-color: #0078d4;
+    }
+
+    .eye-btn {
+      position: absolute;
+      right: 12px;
+      top: 7px;
+      border: none;
+      background: none;
+      color: #6b7280;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg,#004aad,#0078d4);
+      border: none;
+      font-weight: 600;
+      padding: 10px;
+      border-radius: 10px;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.95;
+    }
+
+    .back-link {
+      display: block;
+      margin-top: 14px;
+      text-align: center;
+      color: #004aad;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .footer-text {
+      font-size: 0.85rem;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="brand mb-3">
+      <i class="bi bi-shield-lock"></i> Admin Login
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat,msg in messages %}
+          <div class="alert alert-{{ 'warning' if cat=='warning' else ('success' if cat=='success' else 'info') }} py-2 text-center">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="mb-3">
+        <label for="email" class="form-label">Admin Email</label>
+        <input type="email" name="email" id="email" class="form-control" placeholder="Enter admin email" required>
+      </div>
+
+      <div class="mb-3 position-relative">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+        <button type="button" class="eye-btn" id="togglePassword"><i class="bi bi-eye"></i></button>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-box-arrow-in-right"></i> Login
+      </button>
+    </form>
+
+    <a href="{{ url_for('login') }}" class="back-link"><i class="bi bi-arrow-left"></i> Back to Field Login</a>
+
+    <div class="footer-text">
+      © Linux Labs | Secure Admin Access
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    togglePassword.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      togglePassword.innerHTML = type === 'password' ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+    });
+  </script>
+</body>
+</html>

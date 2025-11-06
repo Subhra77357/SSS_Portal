@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sales Upload Dashboard | Linux Labs</title>
+
+  <!-- ✅ Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <style>
+    body { background:#f5f7fb; font-family:'Segoe UI',sans-serif; }
+    .navbar { background:linear-gradient(90deg,#004aad,#0078d4); box-shadow:0 2px 8px rgba(0,0,0,0.1); }
+    .navbar-brand { color:#fff!important; font-weight:600; }
+    .summary-card {
+      background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05);
+      flex:1; min-width:140px; text-align:center; cursor:pointer; transition:0.2s;
+    }
+    .summary-card.active { border:3px solid #0078d4; box-shadow:0 0 12px rgba(0,120,212,0.3); }
+    th { background:#0078d4!important; color:#fff!important; text-align:center; }
+    td { vertical-align:middle; text-align:center; }
+    .filter-input { width:100%; font-size:0.85rem; padding:3px 6px; border-radius:6px; border:1px solid #ccc; }
+    .status-pending { color:#d63384; font-weight:600; }
+    .status-submitted { color:#198754; font-weight:600; }
+    tr.complete-row { background-color:#d4edda !important; }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ Navbar -->
+  <nav class="navbar navbar-dark">
+    <div class="container-fluid">
+      <span class="navbar-brand"><i class="bi bi-cloud-upload"></i> Sales Submission Portal</span>
+      <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </a>
+    </div>
+  </nav>
+
+  <div class="container my-4">
+
+    <!-- ✅ Summary Cards -->
+    <div id="summary-cards" class="d-flex gap-3 mb-4 flex-wrap text-center">
+      <div class="summary-card p-3" onclick="filterByStatus('AWS_Submitted', this)">
+        <small>AWS Submitted</small>
+        <h5 class="text-success"><i class="bi bi-check-circle"></i> {{ summary.aws_submitted }}</h5>
+      </div>
+      <div class="summary-card p-3" onclick="filterByStatus('AWS_Pending', this)">
+        <small>AWS Pending</small>
+        <h5 class="text-danger"><i class="bi bi-exclamation-circle"></i> {{ summary.aws_pending }}</h5>
+      </div>
+      <div class="summary-card p-3" onclick="filterByStatus('SSS_Submitted', this)">
+        <small>SSS Submitted</small>
+        <h5 class="text-success"><i class="bi bi-check-circle"></i> {{ summary.sss_submitted }}</h5>
+      </div>
+      <div class="summary-card p-3" onclick="filterByStatus('SSS_Pending', this)">
+        <small>SSS Pending</small>
+        <h5 class="text-danger"><i class="bi bi-exclamation-circle"></i> {{ summary.sss_pending }}</h5>
+      </div>
+      <div class="summary-card p-3 active" onclick="filterByStatus('All', this)">
+        <small>Total Stockists</small>
+        <h5><i class="bi bi-people"></i> {{ summary.total }}</h5>
+      </div>
+    </div>
+
+    <!-- ✅ Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat,msg in messages %}
+          <div class="alert alert-info text-center py-2">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- ✅ Table -->
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>State<br><input class="filter-input" id="f1" placeholder="Filter"></th>
+            <th>BM HQ<br><input class="filter-input" id="f2" placeholder="Filter"></th>
+            <th>Code<br><input class="filter-input" id="f3" placeholder="Filter"></th>
+            <th>Stockist Name<br><input class="filter-input" id="f4" placeholder="Filter"></th>
+            <th>Sales Value</th>
+            <th>AWS</th>
+            <th>SSS</th>
+          </tr>
+        </thead>
+
+        <tbody id="rows">
+          {% for r in rows %}
+          <tr class="{% if r.AWS_Status == 'Submitted' and r.SSS_Status == 'Submitted' %}complete-row{% endif %}">
+            <td class="c1">{{ r.STATE }}</td>
+            <td class="c2">{{ r.BM_HQ }}</td>
+            <td class="c3">{{ r.Stockist_Code }}</td>
+            <td class="c4">{{ r.Stockist_Name }}</td>
+
+            <!-- ✅ Sales Value -->
+            <td>
+              <input type="text" class="form-control form-control-sm text-center"
+                     id="sales-{{ r.Stockist_Code }}"
+                     value="{{ r.Sales_Value }}"
+                     placeholder="Enter Sales Value">
+            </td>
+
+            <!-- ✅ AWS Upload -->
+            <td class="text-center">
+              {% if r.AWS_Status == "Submitted" %}
+                <span class="status-submitted">Submitted</span><br>
+                {% if r.AWS_File %}
+                  <a href="{{ url_for('serve_upload', division=r.Division, state=r.STATE, kind='AWS', filename=r.AWS_File) }}"
+                     target="_blank" class="btn btn-outline-success btn-sm mt-1">
+                     <i class="bi bi-eye"></i> View
+                  </a>
+                {% endif %}
+              {% else %}
+                <form action="{{ url_for('upload_aws') }}" method="post" enctype="multipart/form-data" id="formAWS-{{ r.Stockist_Code }}">
+                  <input type="hidden" name="email" value="{{ email }}">
+                  <input type="hidden" name="stockist_code" value="{{ r.Stockist_Code }}">
+                  <input type="file" name="aws_files" id="awsFile-{{ r.Stockist_Code }}" style="display:none;" multiple>
+                  <input type="hidden" name="sales_value" id="salesFieldAWS-{{ r.Stockist_Code }}">
+                  <button type="button" class="btn btn-success btn-sm mt-1" onclick="submitAWS('{{ r.Stockist_Code }}')">
+                    <i class="bi bi-upload"></i> Upload AWS
+                  </button>
+                  <button type="submit" class="btn btn-outline-primary btn-sm mt-1"
+                          id="submitAWS-{{ r.Stockist_Code }}" style="display:none;">
+                    <i class="bi bi-send"></i> Submit
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+
+            <!-- ✅ SSS Upload -->
+            <td class="text-center">
+              {% if r.SSS_Status == "Submitted" %}
+                <span class="status-submitted">Submitted</span><br>
+                {% if r.SSS_File %}
+                  <a href="{{ url_for('serve_upload', division=r.Division, state=r.STATE, kind='SSS', filename=r.SSS_File) }}"
+                     target="_blank" class="btn btn-outline-primary btn-sm mt-1">
+                     <i class="bi bi-eye"></i> View
+                  </a>
+                {% endif %}
+              {% else %}
+                <form action="{{ url_for('upload_sss') }}" method="post" enctype="multipart/form-data" id="formSSS-{{ r.Stockist_Code }}">
+                  <input type="hidden" name="email" value="{{ email }}">
+                  <input type="hidden" name="stockist_code" value="{{ r.Stockist_Code }}">
+                  <input type="file" name="sss_files" id="sssFile-{{ r.Stockist_Code }}" style="display:none;" multiple>
+                  <input type="hidden" name="sales_value" id="salesFieldSSS-{{ r.Stockist_Code }}">
+                  <button type="button" class="btn btn-primary btn-sm mt-1" onclick="submitSSS('{{ r.Stockist_Code }}')">
+                    <i class="bi bi-upload"></i> Upload SSS
+                  </button>
+                  <button type="submit" class="btn btn-outline-primary btn-sm mt-1"
+                          id="submitSSS-{{ r.Stockist_Code }}" style="display:none;">
+                    <i class="bi bi-send"></i> Submit
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ✅ Scripts -->
+  <script>
+    // ✅ Visible alert banner (instead of browser-blocked alert)
+    function showBanner(msg, type="warning") {
+      const container = document.querySelector(".container");
+      const alertDiv = document.createElement("div");
+      alertDiv.className = `alert alert-${type} text-center py-2`;
+      alertDiv.innerHTML = msg;
+      container.prepend(alertDiv);
+      setTimeout(() => alertDiv.remove(), 3500);
+    }
+
+    // ✅ AWS Upload
+    function submitAWS(code){
+      const val=document.getElementById(`sales-${code}`).value.trim();
+      if(!val){
+        showBanner("⚠️ Please enter Sales Value before uploading AWS.", "warning");
+        return;
+      }
+      document.getElementById(`salesFieldAWS-${code}`).value = val;
+      document.getElementById(`awsFile-${code}`).click();
+    }
+
+    // ✅ SSS Upload
+    function submitSSS(code){
+      const val=document.getElementById(`sales-${code}`).value.trim();
+      if(!val){
+        showBanner("⚠️ Please enter Sales Value before uploading SSS.", "warning");
+        return;
+      }
+      document.getElementById(`salesFieldSSS-${code}`).value = val;
+      document.getElementById(`sssFile-${code}`).click();
+    }
+
+    // ✅ Show Submit button after file(s) selected
+    $(document).on('change', 'input[type="file"][id^=awsFile-]', function(){
+      const code=this.id.split('-')[1];
+      document.getElementById(`submitAWS-${code}`).style.display='inline-block';
+    });
+    $(document).on('change', 'input[type="file"][id^=sssFile-]', function(){
+      const code=this.id.split('-')[1];
+      document.getElementById(`submitSSS-${code}`).style.display='inline-block';
+    });
+
+    // ✅ Table Filter
+    function filterTable(){
+      const vals=[f1.value,f2.value,f3.value,f4.value].map(v=>v.toLowerCase());
+      document.querySelectorAll('#rows tr').forEach(tr=>{
+        const cols=[...tr.querySelectorAll('td.c1,td.c2,td.c3,td.c4')].map(td=>td.innerText.toLowerCase());
+        tr.style.display=cols.every((c,i)=>c.includes(vals[i]))?'':'none';
+      });
+    }
+    document.querySelectorAll('#f1,#f2,#f3,#f4').forEach(e=>e.addEventListener('input',filterTable));
+
+    // ✅ Summary Card Filter
+    function filterByStatus(type, el){
+      document.querySelectorAll('#summary-cards .summary-card').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active');
+      const rows=document.querySelectorAll('#rows tr');
+      rows.forEach(tr=>{
+        const aws=tr.querySelector('td:nth-child(6)')?.innerText.trim();
+        const sss=tr.querySelector('td:nth-child(7)')?.innerText.trim();
+        let show=true;
+        switch(type){
+          case 'AWS_Submitted': show=aws.includes('Submitted'); break;
+          case 'AWS_Pending': show=!aws.includes('Submitted'); break;
+          case 'SSS_Submitted': show=sss.includes('Submitted'); break;
+          case 'SSS_Pending': show=!sss.includes('Submitted'); break;
+          default: show=true;
+        }
+        tr.style.display=show?'':'none';
+      });
+    }
+  </script>
+</body>
+</html>

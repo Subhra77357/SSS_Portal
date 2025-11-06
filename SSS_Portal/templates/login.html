@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Linux Labs – Field Login</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(120deg,#0f172a 0%, #0b69b1 60%);
+      height:100vh; display:flex; align-items:center; justify-content:center;
+      font-family: "Segoe UI", sans-serif; color: #fff;
+    }
+    .card-login {
+      width: 380px; border-radius: 14px; padding: 22px; background: rgba(255,255,255,0.98); color:#0b2136;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.35);
+    }
+    .brand {
+      font-weight:800; color:#004aad; display:flex; align-items:center; gap:10px; font-size:1.1rem;
+    }
+    .eye-btn { background: transparent; border: none; position: absolute; right: 12px; top: 8px; color: #666; }
+    .admin-link { display:block; margin-top: 10px; text-align:center; color:#0b69b1; font-weight:700; text-decoration:none; }
+    .admin-link:hover { text-decoration: underline; }
+    .btn-primary { background: linear-gradient(90deg,#004aad,#0078d4); border:none; }
+    .info-small { font-size:0.9rem; color:#6b7280; }
+  </style>
+</head>
+<body>
+  <div class="card-login">
+    <div class="text-center mb-3">
+      <div class="brand">
+        <i class="bi bi-cloud-upload" style="font-size:1.6rem;color:#004aad;"></i>
+        <div>
+          <div style="font-size:1.05rem;">Linux Labs</div>
+          <small class="info-small">SSS & AWS Submission Portal — Field Login</small>
+        </div>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat,msg in messages %}
+          <div class="alert alert-{{ 'warning' if cat=='warning' else ('success' if cat=='success' else 'info') }} py-2">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="mb-2">
+      <div class="mb-3">
+        <label class="form-label">Email ID</label>
+        <input type="email" name="email" class="form-control" placeholder="Enter corporate email" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">
+        <i class="bi bi-box-arrow-in-right"></i> Continue
+      </button>
+    </form>
+
+    <a href="{{ url_for('admin_login') }}" class="admin-link">
+      <i class="bi bi-shield-lock"></i> Admin Login
+    </a>
+
+    <p class="text-center mt-3 info-small">Use your corporate email to sign in. If you face issues, contact Admin.</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

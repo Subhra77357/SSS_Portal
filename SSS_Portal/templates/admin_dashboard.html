@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Dashboard | Linux Labs</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body { font-family: "Segoe UI", sans-serif; background:#f5f7fb; }
+    .navbar { background: linear-gradient(90deg,#004aad,#0078d4); }
+    .navbar-brand { color:#fff !important; }
+    .summary-card { border-radius:10px; padding:14px; background:#fff; cursor:pointer; text-align:center; transition:0.12s; box-shadow:0 2px 8px rgba(0,0,0,0.06); min-width:140px; }
+    .summary-card.active { outline:3px solid rgba(0,120,212,0.12); transform:translateY(-3px); }
+    th { background:#0078d4; color:#fff; text-align:center; vertical-align:middle; }
+    td { vertical-align:middle; text-align:center; font-size:0.92rem; }
+    .filter-input { width:100%; font-size:0.85rem; padding:4px; border-radius:6px; border:1px solid #ccc; }
+    .sort-icon { cursor:pointer; font-size:0.9rem; margin-left:6px; color:#fff; opacity:0.9; }
+    .btn-sm { font-size:0.82rem; padding:5px 8px; }
+    .hidden-file { display:none; }
+    tr.hidden-row { display:none !important; }
+    .action-col { min-width:150px; }
+    .sales-input { max-width:150px; margin:0 auto; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-dark px-3 py-2 d-flex justify-content-between">
+    <div class="d-flex align-items-center">
+      <span class="navbar-brand"><i class="bi bi-speedometer2 me-2"></i> Admin Dashboard</span>
+    </div>
+    <div class="d-flex align-items-center gap-3 text-white small">
+      <div class="text-end">
+        <strong>{{ admin_division }}</strong><br>
+        <i class="bi bi-person-circle"></i> {{ session.get('admin_email') }}
+      </div>
+      <a class="btn btn-light btn-sm" href="{{ url_for('admin_downloads_page') }}"><i class="bi bi-download"></i> Downloads</a>
+      <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    </div>
+  </nav>
+
+  <main class="container my-4">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat,msg in messages %}
+          <div class="alert alert-{{ cat }} text-center py-2">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <section class="d-flex gap-3 mb-4 flex-wrap">
+      <div class="summary-card filter-card" data-filter="AWS_Submitted"><small>AWS Submitted</small><h4 class="mb-0 text-success">{{ summary.aws_submitted }}</h4></div>
+      <div class="summary-card filter-card" data-filter="AWS_Pending"><small>AWS Pending</small><h4 class="mb-0 text-danger">{{ summary.aws_pending }}</h4></div>
+      <div class="summary-card filter-card" data-filter="SSS_Submitted"><small>SSS Submitted</small><h4 class="mb-0 text-success">{{ summary.sss_submitted }}</h4></div>
+      <div class="summary-card filter-card" data-filter="SSS_Pending"><small>SSS Pending</small><h4 class="mb-0 text-danger">{{ summary.sss_pending }}</h4></div>
+      <div class="summary-card filter-card active" data-filter="All"><small>Total</small><h4 class="mb-0">{{ summary.total }}</h4></div>
+    </section>
+
+    <div class="table-responsive">
+      <table id="adminTable" class="table table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>
+              Division
+              <span class="sort-icon" data-col="0" data-dir="none" title="Sort">&#9650;&#9660;</span><br>
+              <input class="filter-input" data-col="0" placeholder="Filter division">
+            </th>
+            <th>
+              State
+              <span class="sort-icon" data-col="1" data-dir="none" title="Sort">&#9650;&#9660;</span><br>
+              <input class="filter-input" data-col="1" placeholder="Filter state">
+            </th>
+            <th>
+              BM HQ
+              <span class="sort-icon" data-col="2" data-dir="none" title="Sort">&#9650;&#9660;</span><br>
+              <input class="filter-input" data-col="2" placeholder="Filter BM HQ">
+            </th>
+            <th>
+              Code
+              <span class="sort-icon" data-col="3" data-dir="none" title="Sort">&#9650;&#9660;</span><br>
+              <input class="filter-input" data-col="3" placeholder="Filter code">
+            </th>
+            <th>
+              Stockist Name
+              <span class="sort-icon" data-col="4" data-dir="none" title="Sort">&#9650;&#9660;</span><br>
+              <input class="filter-input" data-col="4" placeholder="Filter name">
+            </th>
+            <th>
+              Sales Value
+              <span class="sort-icon" data-col="5" data-dir="none" title="Sort">&#9650;&#9660;</span>
+            </th>
+            <th class="action-col">AWS</th>
+            <th class="action-col">SSS</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <!-- Server renders rows; we will read them into JS on load -->
+          {% for r in rows %}
+          <tr
+            data-division="{{ r.Division | e }}"
+            data-state="{{ r.STATE | e }}"
+            data-bmhq="{{ (r.BM_HQ or r.RBM_HQ or '') | e }}"
+            data-code="{{ r.Stockist_Code | e }}"
+            data-name="{{ r.Stockist_Name | e }}"
+            data-sales="{{ r.Sales_Value | e }}"
+            data-aws-status="{{ r.AWS_Status | e }}"
+            data-aws-file="{{ r.AWS_File | e }}"
+            data-sss-status="{{ r.SSS_Status | e }}"
+            data-sss-file="{{ r.SSS_File | e }}"
+          >
+            <td>{{ r.Division }}</td>
+            <td>{{ r.STATE }}</td>
+            <td>{{ r.BM_HQ or r.RBM_HQ or '' }}</td>
+            <td>{{ r.Stockist_Code }}</td>
+            <td class="text-start">{{ r.Stockist_Name }}</td>
+
+            <!-- Sales Value -->
+            <td>
+              {% if r.Sales_Value %}
+                <div class="sales-val">{{ r.Sales_Value }}</div>
+                <a href="{{ url_for('admin_delete', stockist_code=r.Stockist_Code, kind='Sales') }}" class="btn btn-outline-danger btn-sm mt-1 delete-btn" data-kind="Sales"><i class="bi bi-trash"></i> Delete</a>
+              {% else %}
+                <form method="post" action="{{ url_for('admin_update_sales') }}" class="sales-form d-flex gap-1 justify-content-center align-items-center">
+                  <input type="hidden" name="stockist_code" value="{{ r.Stockist_Code }}">
+                  <input name="sales_value" class="form-control form-control-sm text-center sales-input" placeholder="Enter value" required>
+                  <button class="btn btn-success btn-sm" type="submit"><i class="bi bi-upload"></i></button>
+                </form>
+              {% endif %}
+            </td>
+
+            <!-- AWS -->
+            <td>
+              {% if r.AWS_Status == 'Submitted' %}
+                <div class="small status-submitted">Submitted</div>
+                {% if r.AWS_File %}
+                  <a href="{{ url_for('serve_upload', division=r.Division, state=r.STATE, kind='AWS', filename=r.AWS_File) }}" target="_blank" class="btn btn-outline-success btn-sm mt-1"><i class="bi bi-eye"></i> View</a><br>
+                {% endif %}
+                <a href="{{ url_for('admin_delete', stockist_code=r.Stockist_Code, kind='AWS') }}" class="btn btn-outline-danger btn-sm mt-1 delete-btn" data-kind="AWS"><i class="bi bi-trash"></i> Delete</a>
+              {% else %}
+                <form action="{{ url_for('upload_aws') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                  <input type="hidden" name="stockist_code" value="{{ r.Stockist_Code }}">
+                  <input type="file" name="aws_files" id="awsFile-{{ r.Stockist_Code }}" class="hidden-file">
+                  <button type="button" class="btn btn-success btn-sm aws-btn" data-code="{{ r.Stockist_Code }}"><i class="bi bi-upload"></i> Upload AWS</button>
+                  <button type="submit" id="submitAWS-{{ r.Stockist_Code }}" class="btn btn-primary btn-sm mt-1" style="display:none;">Submit</button>
+                </form>
+              {% endif %}
+            </td>
+
+            <!-- SSS -->
+            <td>
+              {% if r.SSS_Status == 'Submitted' %}
+                <div class="small status-submitted">Submitted</div>
+                {% if r.SSS_File %}
+                  <a href="{{ url_for('serve_upload', division=r.Division, state=r.STATE, kind='SSS', filename=r.SSS_File) }}" target="_blank" class="btn btn-outline-primary btn-sm mt-1"><i class="bi bi-eye"></i> View</a><br>
+                {% endif %}
+                <a href="{{ url_for('admin_delete', stockist_code=r.Stockist_Code, kind='SSS') }}" class="btn btn-outline-danger btn-sm mt-1 delete-btn" data-kind="SSS"><i class="bi bi-trash"></i> Delete</a>
+              {% else %}
+                <form action="{{ url_for('upload_sss') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                  <input type="hidden" name="stockist_code" value="{{ r.Stockist_Code }}">
+                  <input type="file" name="sss_files" id="sssFile-{{ r.Stockist_Code }}" class="hidden-file">
+                  <button type="button" class="btn btn-primary btn-sm sss-btn" data-code="{{ r.Stockist_Code }}"><i class="bi bi-upload"></i> Upload SSS</button>
+                  <button type="submit" id="submitSSS-{{ r.Stockist_Code }}" class="btn btn-outline-primary btn-sm mt-1" style="display:none;">Submit</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h6 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> Confirm Delete</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">Are you sure you want to delete this? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button id="modalCancel" type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <a id="modalConfirmBtn" class="btn btn-danger btn-sm" href="#">Yes, delete</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+  // ---------- FAST in-memory rendering + filtering + sorting ----------
+  (function(){
+    // read initial rows from DOM into in-memory array
+    const originalTbody = document.getElementById('rows');
+    const rowNodes = Array.from(originalTbody.querySelectorAll('tr'));
+
+    const rows = rowNodes.map(tr => {
+      return {
+        division: tr.dataset.division || '',
+        state: tr.dataset.state || '',
+        bmhq: tr.dataset.bmhq || '',
+        code: tr.dataset.code || '',
+        name: tr.dataset.name || '',
+        sales: tr.dataset.sales || '',
+        aws_status: tr.dataset.awsStatus || tr.dataset.awsStatus === undefined ? (tr.dataset.awsStatus || '').toString() : '',
+        aws_file: tr.dataset.awsFile || '',
+        sss_status: tr.dataset.sssStatus || tr.dataset.sssStatus === undefined ? (tr.dataset.sssStatus || '').toString() : '',
+        sss_file: tr.dataset.sssFile || '',
+        html: tr.innerHTML,    // preserve original inner HTML for action cells
+        tr_html_full: tr.outerHTML // fallback
+      };
+    });
+
+    // Clear existing tbody — we'll render from JS
+    originalTbody.innerHTML = '';
+
+    // State for filters & sort
+    const filters = {0:'',1:'',2:'',3:'',4:''};
+    let activeCard = 'All';
+    let sortState = {col: null, dir: null}; // col index 0..5 ; dir 'asc'|'desc'|null
+
+    // helpers
+    const normalize = s => (s || '').toString().toLowerCase().trim();
+
+    function buildRowFragment(list){
+      const frag = document.createDocumentFragment();
+      list.forEach(r => {
+        const tr = document.createElement('tr');
+        // construct cells based on stored data (preserve actions by rendering server HTML into a container)
+        // safer to reconstruct cells rather than innerHTML to avoid event loss
+        tr.dataset.division = r.division;
+        tr.dataset.state = r.state;
+        tr.dataset.bmhq = r.bmhq;
+        tr.dataset.code = r.code;
+        tr.dataset.name = r.name;
+        tr.dataset.sales = r.sales;
+        tr.dataset.awsStatus = r.aws_status;
+        tr.dataset.awsFile = r.aws_file;
+        tr.dataset.sssStatus = r.sss_status;
+        tr.dataset.sssFile = r.sss_file;
+
+        // Create and append cells (7 columns)
+        const td = (txt, html=false) => {
+          const cell = document.createElement('td');
+          if(html) cell.innerHTML = txt;
+          else cell.textContent = txt;
+          return cell;
+        };
+
+        tr.appendChild(td(r.division));
+        tr.appendChild(td(r.state));
+        tr.appendChild(td(r.bmhq));
+        tr.appendChild(td(r.code));
+        const nameCell = document.createElement('td');
+        nameCell.className = 'text-start';
+        nameCell.textContent = r.name;
+        tr.appendChild(nameCell);
+
+        // Sales cell: reuse server-rendered HTML substring from tr.html if possible.
+        // To keep logic simple & robust we parse out the relevant inner HTML for cell 6 from stored outer HTML
+        // But safer approach: we render minimal version: if r.sales non-empty show delete link (server route), else show input form.
+        const salesCell = document.createElement('td');
+        if(r.sales){
+          salesCell.innerHTML = `<div class="sales-val">${escapeHtml(r.sales)}</div>
+            <a href="/admin_delete/${encodeURIComponent(r.code)}/Sales" class="btn btn-outline-danger btn-sm mt-1 delete-btn" data-kind="Sales"><i class="bi bi-trash"></i> Delete</a>`;
+        } else {
+          salesCell.innerHTML = `<form method="post" action="/admin_update_sales" class="sales-form d-flex gap-1 justify-content-center align-items-center">
+            <input type="hidden" name="stockist_code" value="${escapeHtml(r.code)}">
+            <input name="sales_value" class="form-control form-control-sm text-center sales-input" placeholder="Enter value" required>
+            <button class="btn btn-success btn-sm" type="submit"><i class="bi bi-upload"></i></button>
+          </form>`;
+        }
+        tr.appendChild(salesCell);
+
+        // AWS cell: if submitted show view+delete else upload form
+        const awsCell = document.createElement('td');
+        if(r.aws_status && r.aws_status.toLowerCase() === 'submitted'){
+          let viewHtml = '';
+          if(r.aws_file) viewHtml = `<a href="/serve_upload/${encodeURIComponent(r.division)}/${encodeURIComponent(r.state)}/AWS/${encodeURIComponent(r.aws_file)}" target="_blank" class="btn btn-outline-success btn-sm mt-1"><i class="bi bi-eye"></i> View</a><br>`;
+          awsCell.innerHTML = `<div class="small status-submitted">Submitted</div>${viewHtml}
+            <a href="/admin_delete/${encodeURIComponent(r.code)}/AWS" class="btn btn-outline-danger btn-sm mt-1 delete-btn" data-kind="AWS"><i class="bi bi-trash"></i> Delete</a>`;
+        } else {
+          awsCell.innerHTML = `<form action="/upload_aws" method="post" enctype="multipart/form-data" class="upload-form">
+            <input type="hidden" name="stockist_code" value="${escapeHtml(r.code)}">
+            <input type="file" name="aws_files" id="awsFile-${escapeHtmlAttr(r.code)}" class="hidden-file">
+            <button type="button" class="btn btn-success btn-sm aws-btn" data-code="${escapeHtmlAttr(r.code)}"><i class="bi bi-upload"></i> Upload AWS</button>
+            <button type="submit" id="submitAWS-${escapeHtmlAttr(r.code)}" class="btn btn-primary btn-sm mt-1" style="display:none;">Submit</button>
+          </form>`;
+        }
+        tr.appendChild(awsCell);
+
+        // SSS
+        const sssCell = document.createElement('td');
+        if(r.sss_status && r.sss_status.toLowerCase() === 'submitted'){
+          let viewHtml = '';
+          if(r.sss_file) viewHtml = `<a href="/serve_upload/${encodeURIComponent(r.division)}/${encodeURIComponent(r.state)}/SSS/${encodeURIComponent(r.sss_file)}" target="_blank" class="btn btn-outline-primary btn-sm mt-1"><i class="bi bi-eye"></i> View</a><br>`;
+          sssCell.innerHTML = `<div class="small status-submitted">Submitted</div>${viewHtml}
+            <a href="/admin_delete/${encodeURIComponent(r.code)}/SSS" class="btn btn-outline-danger btn-sm mt-1 delete-btn" data-kind="SSS"><i class="bi bi-trash"></i> Delete</a>`;
+        } else {
+          sssCell.innerHTML = `<form action="/upload_sss" method="post" enctype="multipart/form-data" class="upload-form">
+            <input type="hidden" name="stockist_code" value="${escapeHtml(r.code)}">
+            <input type="file" name="sss_files" id="sssFile-${escapeHtmlAttr(r.code)}" class="hidden-file">
+            <button type="button" class="btn btn-primary btn-sm sss-btn" data-code="${escapeHtmlAttr(r.code)}"><i class="bi bi-upload"></i> Upload SSS</button>
+            <button type="submit" id="submitSSS-${escapeHtmlAttr(r.code)}" class="btn btn-outline-primary btn-sm mt-1" style="display:none;">Submit</button>
+          </form>`;
+        }
+        tr.appendChild(sssCell);
+
+        frag.appendChild(tr);
+      });
+      return frag;
+    }
+
+    // render list to tbody
+    function renderList(list){
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = '';
+      tbody.appendChild(buildRowFragment(list));
+    }
+
+    // escape helpers for safe HTML insertion
+    function escapeHtml(text){
+      if(text === null || text === undefined) return '';
+      return text.toString().replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
+    }
+    function escapeHtmlAttr(text){
+      return escapeHtml(text).replace(/"/g,'&quot;');
+    }
+
+    // initial currentList equals rows
+    let currentList = rows.slice();
+
+    // filter function
+    function applyFiltersAndSort(){
+      // apply column filters
+      const filterInputs = Array.from(document.querySelectorAll('.filter-input'));
+      const activeFilters = {};
+      filterInputs.forEach(inp => {
+        const col = parseInt(inp.dataset.col,10);
+        activeFilters[col] = inp.value.trim().toLowerCase();
+      });
+
+      // filter by card
+      const cardFilter = activeCard; // 'All' or 'AWS_Submitted' etc.
+
+      let filtered = rows.filter(r => {
+        // col filters: 0 division,1 state,2 bmhq,3 code,4 name
+        if(activeFilters[0] && !normalize(r.division).includes(activeFilters[0])) return false;
+        if(activeFilters[1] && !normalize(r.state).includes(activeFilters[1])) return false;
+        if(activeFilters[2] && !normalize(r.bmhq).includes(activeFilters[2])) return false;
+        if(activeFilters[3] && !normalize(r.code).includes(activeFilters[3])) return false;
+        if(activeFilters[4] && !normalize(r.name).includes(activeFilters[4])) return false;
+
+        // card filters
+        if(cardFilter === 'AWS_Submitted') return (r.aws_status || '').toLowerCase().includes('submitted');
+        if(cardFilter === 'AWS_Pending') return !( (r.aws_status || '').toLowerCase().includes('submitted') );
+        if(cardFilter === 'SSS_Submitted') return (r.sss_status || '').toLowerCase().includes('submitted');
+        if(cardFilter === 'SSS_Pending') return !( (r.sss_status || '').toLowerCase().includes('submitted') );
+        return true;
+      });
+
+      // sorting
+      if(sortState.col !== null){
+        const keyMap = {
+          0: 'division', 1: 'state', 2:'bmhq', 3:'code', 4:'name', 5:'sales'
+        };
+        const key = keyMap[sortState.col];
+        const dir = sortState.dir === 'asc' ? 1 : -1;
+        filtered.sort((a,b) => {
+          const va = normalize(a[key] || '');
+          const vb = normalize(b[key] || '');
+          if(va < vb) return -1 * dir;
+          if(va > vb) return 1 * dir;
+          return 0;
+        });
+      }
+
+      currentList = filtered;
+      renderList(currentList);
+      attachRowListeners(); // reattach dynamic listeners on new DOM
+    }
+
+    // attach listeners for dynamic elements inside rows
+    function attachRowListeners(){
+      // upload triggers
+      document.querySelectorAll('.aws-btn').forEach(btn => {
+        btn.onclick = function(){ const code = this.dataset.code; const input = document.getElementById('awsFile-' + code); if(input) input.click(); };
+      });
+      document.querySelectorAll('.sss-btn').forEach(btn => {
+        btn.onclick = function(){ const code = this.dataset.code; const input = document.getElementById('sssFile-' + code); if(input) input.click(); };
+      });
+
+      // show submit when file chosen
+      document.querySelectorAll('input[id^="awsFile-"]').forEach(input => {
+        input.onchange = function(){
+          const code = this.id.split('-')[1];
+          const submitBtn = document.getElementById('submitAWS-' + code);
+          if(submitBtn) submitBtn.style.display = 'inline-block';
+        };
+      });
+      document.querySelectorAll('input[id^="sssFile-"]').forEach(input => {
+        input.onchange = function(){
+          const code = this.id.split('-')[1];
+          const submitBtn = document.getElementById('submitSSS-' + code);
+          if(submitBtn) submitBtn.style.display = 'inline-block';
+        };
+      });
+
+      // delete buttons open modal
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.onclick = function(e){
+          e.preventDefault();
+          const href = this.getAttribute('href');
+          const modalConfirm = document.getElementById('modalConfirmBtn');
+          modalConfirm.setAttribute('href', href);
+          const bsModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+          bsModal.show();
+        };
+      });
+    }
+
+    // sort icon click
+    document.querySelectorAll('.sort-icon').forEach(icon => {
+      icon.addEventListener('click', () => {
+        const col = parseInt(icon.dataset.col,10);
+        // cycle through none -> asc -> desc -> none
+        let dir = icon.dataset.dir;
+        if(dir === 'none') dir = 'asc';
+        else if(dir === 'asc') dir = 'desc';
+        else dir = 'none';
+        // reset all icons
+        document.querySelectorAll('.sort-icon').forEach(ic => { ic.dataset.dir = 'none'; ic.style.opacity = 0.9; });
+        // set this
+        icon.dataset.dir = dir;
+        icon.style.opacity = dir === 'none' ? 0.6 : 1;
+        if(dir === 'none'){ sortState.col = null; sortState.dir = null; }
+        else { sortState.col = col; sortState.dir = dir; }
+        applyFiltersAndSort();
+      });
+    });
+
+    // filter inputs
+    document.querySelectorAll('.filter-input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        applyFiltersAndSort();
+      });
+    });
+
+    // card filters
+    document.querySelectorAll('.filter-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.filter-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        activeCard = card.dataset.filter;
+        applyFiltersAndSort();
+      });
+    });
+
+    // initial render
+    renderList(currentList);
+    attachRowListeners();
+
+    // expose applyFiltersAndSort for debugging
+    window._applyFiltersAndSort = applyFiltersAndSort;
+  })();
+  </script>
+</body>
+</html>
