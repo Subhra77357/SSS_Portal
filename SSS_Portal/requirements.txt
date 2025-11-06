@@ -20,12 +20,12 @@ MarkupSafe==2.1.5
 python-dotenv==1.0.1
 requests==2.32.3
 
-# For optional compression & performance
+# Compression & optimization
 Flask-Compress==1.14
 
-# For working with Excel/CSV uploads safely
+# Excel / CSV utilities
 xlrd==2.0.1
 XlsxWriter==3.2.0
 
-# (Optional) If you ever add authentication or login pages
+# Optional: for authentication
 Flask-Login==0.6.3
