@@ -1,0 +1,31 @@
+# Core web framework
+Flask==3.0.3
+gunicorn==23.0.0
+
+# Data handling and Excel processing
+pandas==2.2.2
+openpyxl==3.1.5
+numpy==1.26.4
+
+# Timezone and datetime support
+pytz==2024.2
+
+# Flask dependencies
+Werkzeug==3.0.3
+itsdangerous==2.2.0
+Jinja2==3.1.4
+MarkupSafe==2.1.5
+
+# File uploads & utilities
+python-dotenv==1.0.1
+requests==2.32.3
+
+# Compression & optimization
+Flask-Compress==1.14
+
+# Excel / CSV utilities
+xlrd==2.0.1
+XlsxWriter==3.2.0
+
+# Optional: for authentication
+Flask-Login==0.6.3
